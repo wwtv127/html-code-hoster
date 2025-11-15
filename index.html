@@ -3,27 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML Code  Hosting Tool</title>
+    <title>Pure HTML Instant Host</title>
+    <!-- Load Tailwind CSS for modern aesthetics -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; }
-        textarea { width: 100%; height: 300px; padding: 10px; border: 1px solid #ccc; box-sizing: border-box; resize: vertical; }
-        button { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; font-size: 16px; }
-        button:hover { background-color: #0056b3; }
-        #linkOutput { margin-top: 20px; padding: 15px; border: 1px dashed #28a745; background-color: #e2ffe2; display: none; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            min-height: 100vh;
+        }
+        textarea {
+            min-height: 350px;
+            font-family: monospace;
+        }
     </style>
 </head>
-<body>
-    <h1>Paste Your HTML Code Below</h1>
-    <p>We'll use an external service to instantly generate a live link for this code.</p>
-    
-    <textarea id="htmlCodeInput" placeholder="Paste your full HTML code here (including <html> and <body> tags)..."></textarea>
-    
-    <button onclick="hostCode()">Generate Hosted Link</button>
+<body class="flex items-center justify-center p-4">
 
-    <div id="linkOutput">
-        <strong>Your Live Link:</strong> <a id="liveLink" href="#" target="_blank"></a>
+    <div class="w-full max-w-4xl bg-white shadow-2xl rounded-xl p-6 md:p-10">
+        <h1 class="text-3xl font-extrabold text-gray-800 mb-2 border-b-4 border-indigo-500 pb-2">
+            Instant HTML Hosting Tool
+        </h1>
+        <p class="text-gray-600 mb-6">
+            Paste your complete HTML code into the field below. We will generate a unique, clean, and pure public link for it.
+        </p>
+
+        <!-- Input Area -->
+        <textarea 
+            id="htmlCodeInput" 
+            placeholder="<!-- Paste your full HTML code here (including <html>, <head>, and <body>) -->"
+            class="w-full p-4 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition duration-150"
+        ></textarea>
+
+        <!-- Button & Loading Indicator -->
+        <button 
+            id="hostButton" 
+            onclick="attemptHosting()" 
+            class="w-full sm:w-auto mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg transition duration-200 shadow-md flex items-center justify-center disabled:opacity-50"
+        >
+            <svg id="loadingSpinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span id="buttonText">Generate Pure Hosted Link</span>
+        </button>
+
+        <!-- Output and Error Messages -->
+        <div id="resultContainer" class="mt-8 hidden">
+            <div id="successOutput" class="p-4 bg-green-100 border-l-4 border-green-500 text-green-700 rounded-lg" role="alert">
+                <p class="font-bold">Success! Your clean link is ready:</p>
+                <div class="flex items-center mt-2 space-x-2">
+                    <a id="liveLink" href="#" target="_blank" class="break-all underline hover:text-green-900 font-mono text-sm"></a>
+                    <button onclick="copyLink()" class="bg-green-500 text-white text-xs px-2 py-1 rounded hover:bg-green-600 transition">Copy</button>
+                </div>
+                <p class="text-xs mt-2">
+                    Note: Since this is a simulated demo, the link will open the simulated hosted content directly.
+                </p>
+            </div>
+            
+            <div id="errorOutput" class="p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-lg mt-4 hidden" role="alert">
+                <p class="font-bold">Hosting Error:</p>
+                <p id="errorMessage" class="text-sm"></p>
+            </div>
+        </div>
     </div>
 
-    <script src="./script.js"></script>
+    <script>
+        // --- Utility Functions ---
+        
+        // Generates a random 6-character ID for the simulated URL
+        function generateUniqueId() {
+            return Math.random().toString(36).substring(2, 8);
+        }
+
+        // Simulates copying the link to the clipboard
+        function copyLink() {
+            const link = document.getElementById('liveLink').href;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(link).then(() => {
+                    alertUser("Link copied to clipboard!");
+                }).catch(err => {
+                    fallbackCopy(link);
+                });
+            } else {
+                fallbackCopy(link);
+            }
+        }
+        
+        function fallbackCopy(text) {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy'); // Fallback for older browsers/environments
+            document.body.removeChild(tempInput);
+            alertUser("Link copied to clipboard! (Fallback method)");
+        }
+
+        function alertUser(message) {
+             // We can't use alert(), so we'll briefly change the button text to show the message
+             const originalText = document.getElementById('buttonText').textContent;
+             document.getElementById('buttonText').textContent = message;
+             setTimeout(() => {
+                 document.getElementById('buttonText').textContent = originalText;
+             }, 2000);
+        }
+
+        // --- Core Hosting Logic ---
+        
+        // This function SIMULATES the call to a real server/API.
+        // In a real application, you would swap this function for a fetch() call
+        // to a service like Hastebin, Pastebin, or your own custom Node.js server.
+        function simulateApiCall(code) {
+            // This function returns a Promise, just like a real fetch() call.
+            return new Promise((resolve, reject) => {
+                // Simulate network delay
+                setTimeout(() => {
+                    if (code.trim().length > 10) {
+                        // Success: Generate a unique ID and a temporary Blob URL
+                        const uniqueId = generateUniqueId();
+                        
+                        // Create a Blob from the HTML content and generate a local URL for it.
+                        // This proves that ONLY the HTML is loaded into the "hosted" link.
+                        const blob = new Blob([code], { type: 'text/html' });
+                        const blobUrl = URL.createObjectURL(blob);
+                        
+                        // Resolve with the necessary data
+                        resolve({ 
+                            success: true, 
+                            url: blobUrl, // This acts as the "hosted link" for the demo
+                            key: uniqueId 
+                        });
+                    } else {
+                        // Simulate an API failure if the code is too short
+                        reject(new Error("Pasted code is too short or invalid. Please paste full HTML."));
+                    }
+                }, 1500); // 1.5 second delay
+            });
+        }
+        
+        async function attemptHosting() {
+            const codeInput = document.getElementById('htmlCodeInput');
+            const button = document.getElementById('hostButton');
+            const spinner = document.getElementById('loadingSpinner');
+            const buttonText = document.getElementById('buttonText');
+            const resultContainer = document.getElementById('resultContainer');
+            const errorOutput = document.getElementById('errorOutput');
+            const liveLink = document.getElementById('liveLink');
+
+            // Reset previous results
+            resultContainer.classList.add('hidden');
+            errorOutput.classList.add('hidden');
+
+            const code = codeInput.value;
+
+            if (!code.trim()) {
+                alertUser("Please paste code first!");
+                return;
+            }
+
+            // Set loading state
+            button.disabled = true;
+            spinner.classList.remove('hidden');
+            buttonText.textContent = 'Hosting...';
+
+            try {
+                // Call the simulated API (where a real API call would go)
+                const response = await simulateApiCall(code);
+                
+                // Success path
+                if (response.success) {
+                    // Update the link element
+                    liveLink.href = response.url;
+                    liveLink.textContent = `[Simulated ID: ${response.key}] Click to open the pure content!`;
+                    
+                    // Show success message
+                    resultContainer.classList.remove('hidden');
+                } else {
+                    // Handle unexpected success but failed content (unlikely in a real API)
+                    throw new Error("API returned success status but no link.");
+                }
+
+            } catch (error) {
+                // Error path
+                console.error("Hosting failed:", error);
+                document.getElementById('errorMessage').textContent = error.message;
+                errorOutput.classList.remove('hidden');
+                
+            } finally {
+                // Restore button state
+                button.disabled = false;
+                spinner.classList.add('hidden');
+                buttonText.textContent = 'Generate Pure Hosted Link';
+            }
+        }
+    </script>
 </body>
 </html>
+
